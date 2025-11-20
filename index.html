@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>AI Detector — V7 (Stable Fix)</title>
+<title>AI Text Detector — Ultimate v4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,53 +12,241 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <style>
-  :root{ --bg: #05090c; --card-bg: rgba(20, 27, 34, 0.8); --text-main: #eef2f6; --text-muted: #8b9bb4; --primary: #3b82f6; --accent: #10b981; --danger: #f43f5e; --warning: #f59e0b; --border: rgba(255,255,255,0.08); --glass: rgba(255,255,255,0.02); }
+  /* === VARIABLES === */
+  :root{
+    --bg: #05090c;
+    --card-bg: rgba(20, 27, 34, 0.7);
+    --text-main: #eef2f6;
+    --text-muted: #8b9bb4;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.4);
+    --accent: #10b981; --danger: #f43f5e; --warning: #f59e0b;
+    --border: rgba(255,255,255,0.08);
+    --glass: rgba(255,255,255,0.02);
+    --ig-color: #E1306C;
+  }
+
   * { box-sizing: border-box; outline: none; }
+  
   html { scroll-behavior: smooth; }
-  body { margin: 0; background-color: var(--bg); background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%); color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-  .wrap { max-width: 1100px; margin: 40px auto; padding: 0 24px; width: 100%; display: flex; flex-direction: column; min-height: 90vh; }
-  h1, .val, .logo { font-family: 'Outfit', sans-serif; }
-  header { display: flex; align-items: center; gap: 20px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
-  .logo { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-  .grid { display: grid; grid-template-columns: 1fr 440px; gap: 24px; align-items: start; flex-grow: 1; }
-  .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 20px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); display: flex; flex-direction: column; transition: all 0.4s; position: relative; overflow: hidden; }
-  
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%), 
+      radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
+    color: var(--text-main);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* === LAYOUT === */
+  .wrap {
+    max-width: 1000px; margin: 40px auto; padding: 0 24px; width: 100%;
+    animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex; flex-direction: column; min-height: 90vh;
+  }
+
+  h1, h2, h3, .val, .logo { font-family: 'Outfit', sans-serif; }
+
+  header {
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 32px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* === LOGO === */
+  .logo {
+    width: 56px; height: 56px; min-width: 56px; flex-shrink: 0;
+    border-radius: 16px; background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px var(--primary-glow);
+    position: relative; overflow: hidden;
+  }
+  .logo svg { animation: slightRotate 10s infinite linear; }
+  .pulse-dot { animation: brainPulse 2s infinite ease-in-out; transform-origin: center; }
+
+  /* === GRID SYSTEM === */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+    flex-grow: 1;
+  }
+
+  .card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border); border-radius: 20px; padding: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column;
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* === TABS === */
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-  .tab-btn { background: transparent; color: var(--text-muted); border: 1px solid transparent; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+  .tab-btn {
+    background: transparent; color: var(--text-muted); border: 1px solid transparent;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
   .tab-btn:hover { color: var(--text-main); background: var(--glass); }
-  .tab-btn.active { background: rgba(59, 130, 246, 0.1); color: var(--primary); font-weight: 600; }
-  .input-panel { display: none; margin-bottom: 16px; }
+  .tab-btn.active { background: rgba(59, 130, 246, 0.1); color: var(--primary); border-color: rgba(59, 130, 246, 0.2); font-weight: 600; }
+  
+  .input-panel { display: none; animation: fadeIn 0.3s ease; margin-bottom: 16px; }
   .input-panel.active { display: block; }
-  .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; background: var(--glass); }
-  .url-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 12px 16px; border-radius: 10px; color: var(--text-main); }
+
+  /* === FILE UPLOAD UI === */
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 32px;
+    text-align: center; cursor: pointer; transition: all 0.3s; background: var(--glass);
+  }
+  .drop-zone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+  .drop-zone p { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; }
+  #fileInput { display: none; }
+
+  /* === URL INPUT UI === */
+  .url-group { display: flex; gap: 10px; }
+  .url-input {
+    flex-grow: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    padding: 12px 16px; border-radius: 10px; color: var(--text-main); font-family: inherit;
+  }
+  .url-input:focus { border-color: var(--primary); }
   
-  .input-wrapper { position: relative; border-radius: 12px; overflow: hidden; }
-  textarea { width: 100%; min-height: 380px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; color: inherit; font-family: 'Plus Jakarta Sans', monospace; font-size: 15px; line-height: 1.6; resize: vertical; display: block; }
-  textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-  
-  .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, transparent, var(--accent), transparent); box-shadow: 0 0 20px var(--accent); opacity: 0; pointer-events: none; z-index: 5; }
-  .scanning .scan-line { animation: scanMove 1.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; opacity: 1; }
-  
-  button { border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif; transition:0.3s; }
-  #analyzeBtn { width: 100%; background: linear-gradient(135deg, var(--primary), #2563eb); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); margin-top:10px; font-size:15px; }
-  #analyzeBtn:hover { transform: translateY(-2px); }
-  
-  .result-side { opacity: 0.5; filter: blur(3px); pointer-events: none; transition: 0.6s ease; }
-  .result-side.active { opacity: 1; filter: blur(0); pointer-events: auto; border-color: rgba(59, 130, 246, 0.4); }
-  .gauge-ring { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 20px; background: conic-gradient(var(--primary) 0deg, rgba(255,255,255,0.05) 0deg); display: flex; align-items: center; justify-content: center; transition: background 1s ease; }
-  .gauge-inner { width: 120px; height: 120px; background: #0f151a; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .val { font-size: 30px; font-weight: 700; background: linear-gradient(to bottom, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-  .stat-item { background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
-  .stat-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .track { height: 5px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-  .fill { height: 100%; width: 0%; background: var(--primary); border-radius: 10px; transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); }
-  .badge { text-align: center; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--border); display:inline-block; }
-  .page-footer { margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 13px; padding-top: 20px; border-top: 1px solid var(--border); }
+  /* === TEXT AREA === */
+  .input-wrapper { position: relative; overflow: hidden; border-radius: 12px; }
+  textarea {
+    width: 100%; min-height: 320px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    color: inherit; font-family: 'Plus Jakarta Sans', monospace;
+    font-size: 15px; line-height: 1.6; resize: vertical;
+    transition: all 0.3s ease; display: block;
+  }
+  textarea:focus {
+    border-color: var(--primary); background: rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+  .loading-overlay {
+    position: absolute; top:0; left:0; width: 100%; height: 100%;
+    background: rgba(5, 9, 12, 0.8); backdrop-filter: blur(4px);
+    display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+  }
+  .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;}
+
+  /* Laser Scan Effect */
+  .scan-line {
+    position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    box-shadow: 0 0 15px var(--primary);
+    opacity: 0; pointer-events: none; z-index: 5;
+  }
+  .scanning .scan-line { animation: scanMove 1.5s cubic-bezier(0.45, 0, 0.55, 1) forwards; opacity: 1; }
   
   @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
-  @media(max-width: 900px){ .grid { grid-template-columns: 1fr; gap: 32px; } }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  /* === BUTTONS === */
+  .controls { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  button {
+    border: none; padding: 12px 24px; border-radius: 12px; cursor: pointer;
+    font-weight: 600; font-size: 14px; font-family: 'Outfit', sans-serif;
+    transition: transform 0.1s, box-shadow 0.2s;
+  }
+  button:active { transform: scale(0.96); }
+
+  #analyzeBtn, #fetchUrlBtn {
+    background: linear-gradient(135deg, var(--primary), #2563eb);
+    color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+  #analyzeBtn { flex-grow: 1; max-width: 220px; }
+  #analyzeBtn:hover, #fetchUrlBtn:hover { box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5); transform: translateY(-2px); }
+  
+  .btn-sec { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+  .btn-sec:hover { background: rgba(255,255,255,0.1); color: white; }
+
+  /* === RESULT PANEL === */
+  .result-side {
+    opacity: 0.4; filter: blur(4px); transform: translateY(20px);
+    pointer-events: none; transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  
+  .result-side.active {
+    opacity: 1; filter: blur(0); transform: translateY(0);
+    pointer-events: auto; border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .badge { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); }
+
+  /* Gauge & Stats */
+  .meter-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
+  .gauge-ring {
+    width: 180px; height: 180px; border-radius: 50%;
+    background: conic-gradient(var(--primary) 0deg, rgba(255,255,255,0.05) 0deg);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 40px rgba(0,0,0,0.3); transition: background 1s ease;
+  }
+  .gauge-inner { width: 150px; height: 150px; background: #0f151a; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .val { font-size: 36px; font-weight: 700; background: linear-gradient(to bottom, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  
+  .breakdown { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+  .track { height: 6px; width: 100%; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+  .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 10px; transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  
+  .stat-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+
+  .meta-info { display: flex; justify-content: center; gap: 24px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: var(--text-muted); border: 1px solid var(--border); }
+  
+  .explanation-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  
+  select#lang { background: var(--glass); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+
+  /* === FOOTER CREDIT STYLES === */
+  .page-footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    color: var(--text-muted); font-size: 13px;
+  }
+  
+  .credit-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none; color: var(--text-main);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 50px;
+    font-weight: 600; transition: all 0.3s ease;
+  }
+  
+  .credit-link svg { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  
+  .credit-link:hover {
+    background: rgba(225, 48, 108, 0.1);
+    border-color: var(--ig-color);
+    color: var(--ig-color);
+    box-shadow: 0 0 20px rgba(225, 48, 108, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .credit-link:hover svg { transform: scale(1.2) rotate(-5deg); }
+
+  @keyframes brainPulse { 0%, 100% { opacity: 0.5; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+  @keyframes slightRotate { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(3deg); } 75% { transform: rotate(-3deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Responsive */
+  @media(max-width: 900px){
+    .grid { grid-template-columns: 1fr; gap: 32px; }
+  }
 </style>
 </head>
 <body>
@@ -66,346 +254,440 @@
 <div class="wrap">
   <header>
     <div class="logo">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10h-10z" opacity="0.5"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2V4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 20V22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20 12H22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M2 12H4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17Z" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="2" fill="white" class="pulse-dot"/>
+        <path d="M17 12H15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M7 12H9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15.5 15.5L14 14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8.5 8.5L10 10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
     </div>
     <div style="flex-grow:1">
       <h1>AI Text Detector</h1>
-      <p style="font-size:13px;color:var(--text-muted)">V7 Stable: Auto-Sanitizer & Crash Protection</p>
+      <p class="lead" style="font-size:14px;color:var(--text-muted)">Mode: Hybrid Narrative & Academic Analysis (V4)</p>
     </div>
-    <select id="lang" style="background:rgba(255,255,255,0.1);border:1px solid var(--border);color:white;padding:6px 12px;border-radius:8px"><option value="id">🇮🇩 ID</option><option value="en">🇺🇸 EN</option></select>
+    <div>
+      <select id="lang"><option value="id">🇮🇩 ID</option><option value="en">🇺🇸 EN</option></select>
+    </div>
   </header>
 
   <div class="grid">
     <div class="card" style="z-index: 2;">
+      
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('text', event)">Paste Text</button>
-        <button class="tab-btn" onclick="switchTab('file', event)">Upload File</button>
-        <button class="tab-btn" onclick="switchTab('url', event)">URL</button>
+        <button class="tab-btn active" onclick="switchTab('text')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Paste Text
+        </button>
+        <button class="tab-btn" onclick="switchTab('file')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+          Upload File
+        </button>
+        <button class="tab-btn" onclick="switchTab('url')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          Web Link
+        </button>
       </div>
 
       <div id="panel-file" class="input-panel">
         <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-          <p>Klik untuk upload <b>PDF / DOCX / TXT</b></p>
-          <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc" style="display:none">
+          <svg width="40" height="40" stroke="var(--primary)" fill="none" stroke-width="1.5" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <p>Klik untuk upload <b>PDF, DOCX, TXT</b></p>
+          <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc">
         </div>
       </div>
 
       <div id="panel-url" class="input-panel">
-        <div style="display:flex; gap:10px">
-          <input type="text" class="url-input" id="urlInput" placeholder="https://artikel.com">
-          <button id="fetchUrlBtn" onclick="fetchUrl(event)" style="width:auto;margin:0;padding:0 20px;background:rgba(255,255,255,0.1)">Fetch</button>
+        <div class="url-group">
+          <input type="text" class="url-input" id="urlInput" placeholder="https://example.com/artikel">
+          <button id="fetchUrlBtn" onclick="fetchUrl()">Fetch</button>
         </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Note: Menggunakan proxy publik. Mungkin lambat.</p>
       </div>
 
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;margin-top:8px">
+        <label style="font-weight:600;color:var(--text-main);font-size:13px" id="lblInput">Konten Teks</label>
+      </div>
+      
       <div class="input-wrapper" id="inputWrapper">
         <div class="scan-line"></div>
-        <textarea id="inputText" placeholder="Tempel teks di sini untuk dianalisis (Min. 30 kata)..."></textarea>
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <span style="font-size:12px;color:var(--text-muted)">Processing...</span>
+        </div>
+        <textarea id="inputText" placeholder="Tempel teks atau hasil upload akan muncul di sini..."></textarea>
       </div>
 
-      <div style="display:flex; gap:10px; margin-top:10px">
-        <button id="analyzeBtn">START SCANNING</button>
-        <button onclick="el('inputText').value=''" style="width:80px;background:rgba(255,255,255,0.05);margin-top:10px">Clear</button>
+      <div class="controls">
+        <button id="analyzeBtn">Analyze Text</button>
+        <button id="clearBtn" class="btn-sec">Clear</button>
+        <div class="hint" id="hintNote">Min ~50 kata</div>
       </div>
     </div>
 
     <div class="card result-side" id="resultCard">
-      <div style="text-align:center"><span class="badge" id="statusBadge">WAITING</span></div>
-      <div class="gauge-ring" id="gauge"><div class="gauge-inner"><div class="val" id="percent">0%</div></div></div>
-      <div class="stats-grid" id="statsContainer"></div>
-      <div style="margin-top:20px;text-align:center;font-size:13px;color:var(--text-muted);line-height:1.5;border-top:1px solid var(--border);padding-top:15px" id="explainText">Analisis mendalam akan muncul di sini.</div>
+      <div class="result-header">
+        <div style="font-weight:600" id="lblResult">Hasil Deteksi</div>
+        <div class="badge" id="label">WAITING</div>
+      </div>
+
+      <div class="meter-wrap">
+        <div class="gauge-ring" id="gauge">
+          <div class="gauge-inner">
+            <div class="lbl-score" style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)" id="lblAILikelihood">AI PROBABILITY</div>
+            <div class="val" id="percent">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-info">
+        <span><b id="valWords">0</b> <span id="txtWords">Kata</span></span>
+        <span style="width:1px;background:var(--border)"></span>
+        <span><b id="valSent">0</b> <span id="txtSent">Kalimat</span></span>
+      </div>
+
+      <div class="breakdown">
+        <div>
+          <div class="stat-label"><span id="lblRep">Repetisi</span> <span id="valRep">0%</span></div>
+          <div class="track"><div class="fill" id="barRepetition"></div></div>
+        </div>
+        <div>
+          <div class="stat-label"><span id="lblVar">Variasi Kalimat</span> <span id="valVar">0%</span></div>
+          <div class="track"><div class="fill" id="barSentVar"></div></div>
+        </div>
+        <div>
+          <div class="stat-label"><span id="lblTTR">Pola Frasa (N-Gram)</span> <span id="valTTR">0%</span></div>
+          <div class="track"><div class="fill" id="barTTR"></div></div>
+        </div>
+        <div>
+          <div class="stat-label"><span id="lblPunct">Indikator AI (Hallmarks)</span> <span id="valPunct">0%</span></div>
+          <div class="track"><div class="fill" id="barPunct"></div></div>
+        </div>
+        <div>
+          <div class="stat-label"><span id="lblEntropy">Kompleksitas (Entropy)</span> <span id="valEntropy">0%</span></div>
+          <div class="track"><div class="fill" id="barEntropy"></div></div>
+        </div>
+      </div>
+
+      <div class="explanation-box">
+        <div class="explain-text" id="explainText" style="font-size:13px;color:var(--text-muted)">Menunggu input untuk dianalisis...</div>
+      </div>
     </div>
   </div>
 
-  <div class="page-footer"><span>Engineered by</span> <a href="#" class="credit-link" style="color:var(--text-main)">@savero</a></div>
+  <div class="page-footer">
+    <span>Developed by</span>
+    <a href="https://instagram.com/savero_aja" target="_blank" class="credit-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.878 4.234 21.222 4.79 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.988 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.222 19.21 20.878 19.766 20.322 20.322C19.766 20.878 19.21 21.222 18.55 21.475C17.912 21.722 17.187 21.89 16.122 21.94C15.056 21.99 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.087 21.722 5.45 21.475C4.79 21.222 4.234 20.878 3.678 20.322C3.123 19.766 2.779 19.21 2.525 18.55C2.277 17.912 2.11 17.187 2.06 16.122C2.01 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.813 2.277 6.087 2.525 5.45C2.779 4.79 3.123 4.234 3.678 3.678C4.234 3.123 4.79 2.779 5.45 2.525C6.087 2.277 6.813 2.11 7.878 2.06C8.944 2.01 9.283 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 7C9.239 7 7 9.239 7 12C7 14.761 9.239 17 12 17C14.761 17 17 14.761 17 12C17 9.239 14.761 7 12 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M17.5 6.5H17.51" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      @savero
+    </a>
+  </div>
 </div>
 
 <script>
-/* === 1. UTILS & SANITIZER (ANTI-CRASH) === */
-const el = (id) => document.getElementById(id);
-const clamp = (x) => Math.max(0,Math.min(1,x));
-const sd = (arr) => { if(arr.length<=1)return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.map(x=>Math.pow(x-m,2)).reduce((a,b)=>a+b,0)/arr.length); };
+/* === CONFIG & UTILS === */
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-// Sanitizer untuk karakter aneh
-function sanitizeText(t) {
-  if(!t) return "";
-  return t.replace(/[\u2018\u2019]/g, "'")
-          .replace(/[\u201C\u201D]/g, '"')
-          .replace(/\u2026/g, "...")
-          .replace(/[\r\n]+/g, " ")
-          .trim();
-}
-
-function tokenize(t){ 
-  return sanitizeText(t).toLowerCase().replace(/[^a-z0-9\s']/g, "").split(/\s+/).filter(Boolean);
-}
-
-function sentences(t){ 
-  // Improved sentence splitting to handle common cases more robustly
-  return sanitizeText(t).split(/([.?!]|\n)\s+/).filter(s => s.trim().length > 2);
-}
-
-/* === 2. DATA & ENGINE === */
-const DB = {
-  id: {
-    story: ["menghela napas","tersenyum kecil","terdiam sejenak","tak bergeming","entah bagaimana","seolah membawa","seolah-olah","perlahan namun pasti","tanpa ragu","sosok yang","cahaya remang","di sudut ruangan","tatapan mata","menyapu pandangan","perasaan aneh","angin berhembus","mematung","gemerlap","tak bisa dipungkiri","bergumam pelan","langkah kaki","hening sejenak","menatap nanar","degup jantung","nuansa yang","terpaku","seketika itu"],
-    essay: ["kesimpulannya","penting untuk dicatat","dapat disimpulkan","sebagai model bahasa","pada dasarnya","secara keseluruhan","di sisi lain","selain itu","namun demikian","signifikan","ranah","tapestri","menyelami","sebuah bukti","landskap","konteks ini","adalah sebagai berikut","dalam hal ini","berkaitan dengan","menggarisbawahi","patut dipahami"],
-    connectors: ["oleh karena itu", "akan tetapi", "dengan demikian", "sebagai hasilnya", "di samping itu", "sementara itu", "akibatnya", "selanjutnya"]
-  },
-  en: {
-    story: ["shiver down", "remnant", "echoed", "a sense of", "unbeknownst", "flickered", "intertwined", "midst of", "loomed", "bustling", "nestled"],
-    essay: ["in conclusion", "it is important to note", "furthermore", "moreover", "delve", "landscape", "testament", "realm", "tapestry", "underscores", "overall", "arguably", "vital role"],
-    connectors: ["therefore", "however", "consequently", "furthermore", "nevertheless", "moreover", "meanwhile"]
-  }
+const els = {
+  input: document.getElementById("inputText"), inputWrap: document.getElementById("inputWrapper"),
+  loading: document.getElementById("loadingOverlay"),
+  lang: document.getElementById("lang"), percent: document.getElementById("percent"),
+  gauge: document.getElementById("gauge"), label: document.getElementById("label"),
+  resultCard: document.getElementById("resultCard"),
+  analyzeBtn: document.getElementById("analyzeBtn"),
+  tabs: document.querySelectorAll('.tab-btn'),
+  panels: { text: null, file: document.getElementById("panel-file"), url: document.getElementById("panel-url") },
+  bars: { rep: document.getElementById("barRepetition"), var: document.getElementById("barSentVar"), ttr: document.getElementById("barTTR"), punct: document.getElementById("barPunct"), entropy: document.getElementById("barEntropy") },
+  vals: { rep: document.getElementById("valRep"), var: document.getElementById("valVar"), ttr: document.getElementById("valTTR"), punct: document.getElementById("valPunct"), entropy: document.getElementById("valEntropy") },
+  labels: { ttr: document.getElementById("lblTTR"), punct: document.getElementById("lblPunct") },
+  explain: document.getElementById("explainText"), meta: { w: document.getElementById("valWords"), s: document.getElementById("valSent") }
 };
 
-function analyze(text){
-  const lang = el('lang').value;
-  const cleanTxt = sanitizeText(text);
+/* === TAB SWITCHER === */
+function switchTab(mode){
+  els.tabs.forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  els.panels.file.classList.remove('active');
+  els.panels.url.classList.remove('active');
+  if(mode === 'file') els.panels.file.classList.add('active');
+  if(mode === 'url') els.panels.url.classList.add('active');
+}
+
+/* === FILE HANDLING === */
+document.getElementById('fileInput').addEventListener('change', async function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  showLoading(true);
+  try {
+    let text = "";
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(ext === 'txt') text = await file.text();
+    else if (ext === 'pdf') text = await readPdf(file);
+    else if (ext === 'docx' || ext === 'doc') text = await readDocx(file);
+    else alert("Format tidak didukung.");
+    els.input.value = text;
+    switchTab('text'); 
+  } catch(err) {
+    console.error(err);
+    alert("Gagal membaca file: " + err.message);
+  }
+  showLoading(false);
+});
+
+async function readPdf(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  let fullText = "";
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    fullText += textContent.items.map(item => item.str).join(' ') + "\n";
+  }
+  return fullText;
+}
+
+async function readDocx(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({arrayBuffer: arrayBuffer});
+  return result.value;
+}
+
+/* === URL SCRAPING === */
+async function fetchUrl(){
+  const url = document.getElementById('urlInput').value;
+  if(!url) return;
+  showLoading(true);
+  try {
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    if(data.contents){
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.contents, 'text/html');
+      ['script', 'style', 'nav', 'footer', 'header', 'iframe'].forEach(tag => {
+        const elements = doc.querySelectorAll(tag);
+        elements.forEach(el => el.remove());
+      });
+      els.input.value = doc.body.innerText.replace(/\s+/g, ' ').trim();
+    } else alert("Gagal mengambil konten URL.");
+  } catch(e){ alert("Error fetching URL (CORS/Network)."); }
+  showLoading(false);
+}
+
+function showLoading(isLoading){
+  els.loading.style.display = isLoading ? 'flex' : 'none';
+}
+
+/* === MODIFIED LOGIC ANALISIS (V4 - HYBRID NARRATIVE) === */
+
+// 1. Daftar Kata Khas ESAI (Formal)
+const aiKeywordsID_Essay = [
+  "kesimpulannya", "penting untuk dicatat", "dapat disimpulkan", "sebagai model bahasa", 
+  "pada dasarnya", "secara keseluruhan", "di sisi lain", "selain itu", "namun demikian", 
+  "signifikan", "ranah", "tapestri", "menyelami", "sebuah bukti", "landskap", "konteks ini",
+  "adalah sebagai berikut", "dalam hal ini"
+];
+
+// 2. Daftar Kata Khas NARASI/CERPEN AI (Utama untuk teks Mahesa)
+const aiKeywordsID_Story = [
+  "menghela napas", "tersenyum kecil", "terdiam sejenak", "tak bergeming", "entah bagaimana", 
+  "seolah membawa", "seolah-olah", "perlahan namun pasti", "tanpa ragu", "sosok yang", 
+  "cahaya remang", "di sudut ruangan", "tatapan mata", "menyapu pandangan", "perasaan aneh",
+  "angin berhembus", "mematung", "gemerlap", "tak bisa dipungkiri", "bergumam pelan",
+  "langkah kaki", "hening sejenak", "menatap nanar", "degup jantung"
+];
+
+const aiKeywordsEN = [
+  "in conclusion", "it is important to note", "furthermore", "moreover", "delve", 
+  "landscape", "testament", "realm", "tapestry", "underscores", "overall", "arguably", 
+  "vital role", "shiver down", "remnant", "echoed", "a sense of"
+];
+
+function tokenizeWords(text){ return text.replace(/[\n\r]+/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/^[^a-zA-Z0-9']+|[^a-zA-Z0-9']+$/g,'').toLowerCase()); }
+function sentences(text){ return text.split(/([.?!]|(?<!\.)\.\.\.(?!\.))\s+/g).filter((_, i) => i % 2 === 0).map(s=>s.trim()).filter(Boolean); }
+function charEntropy(s){ if (s.length === 0) return 0; const freq = {}; for (const c of s.toLowerCase().replace(/\s/g, '')) freq[c]=(freq[c]||0)+1; const n = Object.values(freq).reduce((a,b)=>a+b,0); let H = 0; for (const k in freq){ const p = freq[k]/n; H -= p * Math.log2(p); } return H; }
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function sd(arr){ if(arr.length <= 1) return 0; const m=mean(arr); return Math.sqrt(mean(arr.map(x=>Math.pow(x-m,2)))); }
+function clamp01(x){ return Math.max(0,Math.min(1,x)); }
+
+// Fungsi N-Gram (Commonality)
+function calculateCommonality(words) {
+  if (words.length < 10) return 0.5;
+  const bigrams = [];
+  for (let i = 0; i < words.length - 1; i++) bigrams.push(words[i] + " " + words[i+1]);
+  const counts = {};
+  bigrams.forEach(b => counts[b] = (counts[b] || 0) + 1);
   
-  if(!cleanTxt) return { total:0, cats:{} }; // Safety check
-
-  const sent = sentences(cleanTxt);
-  const words = tokenize(cleanTxt);
-  const lower = cleanTxt.toLowerCase();
-
-  // 1. Burstiness (Sentence Length Variation)
-  const lens = sent.map(s => s.split(/\s+/).length);
-  const dev = sd(lens);
-  // Adjusted: High variation (low SD) means human-like. Low SD means robotic/AI.
-  // The original logic seems backward (0.8 for bursty range), let's adjust the scoring philosophy:
-  const burst = clamp(1 - (Math.abs(dev - 6.0) / 15)); // Center human burstiness around 6.0, penalize extremes
-
-  // 2. Perplexity Proxy (Lexical Diversity/TTR)
-  const unique = new Set(words).size;
-  const ttr = (unique / (words.length || 1));
-  const perp = clamp(1 - Math.abs(ttr - 0.55) / 0.25); // Center human TTR around 0.55
-
-  // 3. Repetition
-  const wordCounts = {}; words.forEach(w => wordCounts[w] = (wordCounts[w]||0)+1);
-  const repCount = Object.values(wordCounts).filter(c => c > 1).length;
-  const rep = clamp(1 - (repCount / (words.length||1) * 3.5)); // 1 for low repetition (good)
-
-  // 4. Hallmarks (AI-Phrase Detection)
-  const keys = [...DB[lang].story, ...DB[lang].essay];
-  let hits = 0; 
-  keys.forEach(k => { if(lower.includes(k)) hits += (k.includes(" ") ? 2 : 1); });
-  const hall = clamp(1 - (hits / (words.length||1) * 120)); // 1 for low hallmark words (good)
-
-  // 5. N-Gram Uniformity
-  const bi = []; for(let i=0; i<words.length-1; i++) bi.push(words[i]+" "+words[i+1]);
-  const nGramDiversity = (new Set(bi).size / (bi.length||1));
-  const ngram = clamp(1 - Math.abs(nGramDiversity - 0.75) / 0.25); // Center human N-Gram diversity around 0.75
-
-  // 6. Connectors (Over-reliance on flowery connectors)
-  let connHits = 0; DB[lang].connectors.forEach(c => { if(lower.includes(c)) connHits++; });
-  const conn = clamp(1 - (connHits / (words.length||1) * 150)); // 1 for low connector usage (good)
-
-  // 7. Para Uniformity (Consistency of paragraph length)
-  const paras = cleanTxt.split(/\n\s*\n/).filter(p=>p.trim().length>0);
-  const paraDev = sd(paras.map(p=>p.split(" ").length));
-  const para = paras.length < 2 ? 0.5 : clamp(1 - (paraDev / 20)); // 1 for high variation (good)
-
-  // 8. Complexity (Commas per sentence)
-  const commas = (cleanTxt.match(/,/g)||[]).length;
-  const avgCommas = commas / (sent.length||1);
-  const comp = clamp(1 - Math.abs(avgCommas - 1.5) / 3.0); // Center human complexity around 1.5 commas/sentence
-
-  // 9. Readability (Average Word Length)
-  const avgLen = words.reduce((a,b)=>a+b.length,0) / (words.length||1);
-  const read = clamp(1 - Math.abs(avgLen - 5.5) / 1.5); // Center human readability/word length around 5.5
-
-  // 10. Emotion/Punctuation Mark Use (Exclamation Marks as a proxy)
-  const emo = clamp(1 - (((cleanTxt.match(/!/g)||[]).length / cleanTxt.length) * 100)); // 1 for low exclamation marks (AI tends to avoid them)
-
-  // Scoring Weights (Adjusted for "Human Likelihood Score")
-  // All components now score 1.0 for "Human" and 0.0 for "AI"
-  let w = { burst:0.1, perp:0.15, rep:0.1, hall:0.25, ngram:0.15, conn:0.1, para:0.05, comp:0.05, read:0.05, emo:0.05 };
+  const uniqueBigrams = Object.keys(counts).length;
+  const totalBigrams = bigrams.length;
+  const ratio = uniqueBigrams / totalBigrams; 
   
-  // High Hallmarks is a strong indicator of AI
-  if (hall < 0.5) { w.hall = 0.45; w.ngram = 0.25; }
+  // AI Cerpen biasanya ratio 0.85 - 0.9 (agak berulang pola frasanya)
+  // Manusia fiksi sastra bisa 0.96+ (sangat unik)
+  return clamp01(1 - (ratio - 0.6) / (0.95 - 0.6)); 
+}
 
-  let humanScore = burst*w.burst + perp*w.perp + rep*w.rep + hall*w.hall + ngram*w.ngram + conn*w.conn + para*w.para + comp*w.comp + read*w.read + emo*w.emo;
+// Fungsi Hallmarks (Gabungan Esai & Cerita)
+function checkHallmarks(text, lang) {
+  const lower = text.toLowerCase();
+  let keywords = [];
   
-  // Final score smoothing (less aggressive than before, but still boosts strong indicators)
-  const finalScore = clamp(humanScore);
+  if (lang === 'id') {
+    keywords = [...aiKeywordsID_Essay, ...aiKeywordsID_Story];
+  } else {
+    keywords = aiKeywordsEN;
+  }
+  
+  let hits = 0;
+  keywords.forEach(k => {
+    // Bobot lebih besar untuk frasa panjang
+    if(k.includes(" ")) {
+       if(lower.includes(k)) hits += (lower.match(new RegExp(k, "g")) || []).length * 2.0; 
+    } else {
+       hits += (lower.match(new RegExp("\\b"+k+"\\b", "g")) || []).length;
+    }
+  });
 
-  return { 
-    total: finalScore, 
-    cats: { "Variasi Kalimat (Burstiness)":burst, "Kekayaan Kata (Perplexity)":perp, "Repetisi Kata":rep, "Kata Khas AI (Hallmark)":hall, "Pola Frasa (N-Gram)":ngram, "Kata Sambung Formal":conn, "Struktur Paragraf":para, "Kompleksitas Kalimat":comp, "Keterbacaan":read, "Emosi Datar":emo } 
+  const wordCount = text.split(/\s+/).length;
+  const density = (hits / wordCount) * 100;
+  
+  // Density > 1% saja sudah cukup curiga untuk cerita
+  return clamp01(density / 1.0); 
+}
+
+function analyzeText(text){
+  const raw = text.trim(); 
+  const sent = sentences(raw); 
+  const words = tokenizeWords(raw); 
+  const wcount = words.length;
+  const currentLang = els.lang.value;
+
+  // 1. Repetisi
+  const scRepetition = clamp01(1 - ((Object.values(words.reduce((a,w)=>{a[w]=(a[w]||0)+1;return a},{})).filter(c=>c>1).length / words.length) - 0.04) / (0.20 - 0.04));
+  
+  // 2. Variasi Kalimat (Burstiness)
+  const lengths = sent.map(s=>s.split(/\s+/).filter(Boolean).length);
+  const sdVal = sd(lengths);
+  
+  // Logika "Too Perfect": AI SD 3-7 (Rapi), Manusia <2 (Monoton) atau >10 (Sastra)
+  let scSentVar = 0;
+  if(sdVal > 3.5 && sdVal < 8.5) {
+     scSentVar = 0.75; // Curiga AI (Rapi standar)
+  } else {
+     scSentVar = 0.3; // Sangat acak (Manusia)
+  }
+
+  // 3. Commonality (Pola Frasa)
+  const scCommonality = calculateCommonality(words);
+
+  // 4. Hallmarks (Kata Khas - KUNCI UTAMA)
+  const scHallmarks = checkHallmarks(raw, currentLang);
+
+  // 5. Entropy (Kompleksitas)
+  const scEntropy = clamp01(1 - (charEntropy(raw) - 3.5) / (5.0 - 3.5));
+
+  // === PEMBOBOTAN DINAMIS ===
+  let weights;
+  
+  // Jika terdeteksi hallmark cerita/esai yg kuat (>20%)
+  if (scHallmarks > 0.2) {
+    weights = { 
+      rep: 0.05, 
+      sentVar: 0.10, 
+      common: 0.25, 
+      hallmark: 0.50, // Dominan Hallmark
+      entropy: 0.10 
+    };
+  } else {
+    // Jika teks netral
+    weights = { 
+      rep: 0.10, 
+      sentVar: 0.25, 
+      common: 0.35, 
+      hallmark: 0.20, 
+      entropy: 0.10 
+    };
+  }
+
+  let rawScore = (
+    scRepetition * weights.rep + 
+    scSentVar * weights.sentVar + 
+    scCommonality * weights.common + 
+    scHallmarks * weights.hallmark + 
+    scEntropy * weights.entropy
+  );
+
+  if (wcount < 50){ const f = (50 - wcount)/50; rawScore = rawScore*(1-f) + 0.5*f; }
+
+  // Hukuman berat jika Hallmarks terdeteksi banyak (kasus Mahesa)
+  if(scHallmarks > 0.35) rawScore = Math.max(rawScore, 0.82);
+
+  let finalScore = rawScore;
+  // Sigmoid Curve
+  if(rawScore > 0.55) finalScore += 0.15; 
+  if(rawScore < 0.35) finalScore -= 0.15;
+
+  return {
+    score: clamp01(finalScore), 
+    components: { 
+      scRepetition, 
+      scSentVar, 
+      scTTR: scCommonality,    
+      scPunct: scHallmarks,    
+      scEntropy, 
+      wcount 
+    }
   };
 }
 
-/* === 3. FILE READING FUNCTIONS === */
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+function updateUI(score, comp, text){
+  const pct = Math.round(score*100);
+  animateValue(els.percent, 0, pct, 1000);
+  
+  let color = pct >= 75 ? 'var(--danger)' : (pct >= 50 ? 'var(--warning)' : 'var(--accent)');
+  els.gauge.style.background = `conic-gradient(${color} ${Math.round(pct*3.6)}deg, rgba(255,255,255,0.05) 0deg)`;
+  
+  const isID = els.lang.value === 'id';
+  const L = isID ? 
+    {ai:"DOMINAN AI", mix:"MUNGKIN AI", hu:"INDIKASI MANUSIA", exAI:"Terdeteksi gaya bahasa klise/robotik.", exHu:"Struktur natural & variatif."} : 
+    {ai:"LIKELY AI", mix:"POSSIBLY AI", hu:"LIKELY HUMAN", exAI:"Detected robotic/cliché phrasing.", exHu:"Natural variation."};
 
-async function readPdf(file) {
-    const d = await file.arrayBuffer();
-    const p = await pdfjsLib.getDocument({data:d}).promise;
-    let txt = "";
-    for(let i=1; i<=p.numPages; i++) {
-        const page = await p.getPage(i);
-        const textContent = await page.getTextContent();
-        txt += textContent.items.map(s => s.str).join(' ') + "\n";
-    }
-    return txt;
-}
-
-async function readDocx(file) {
-    const r = await mammoth.extractRawText({arrayBuffer: await file.arrayBuffer()});
-    return r.value;
-}
-
-/* === 4. UI INTERACTION & EVENT HANDLERS === */
-
-function switchTab(mode, event){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  document.querySelectorAll('.input-panel').forEach(p=>p.classList.remove('active'));
-  if(mode==='file') el('panel-file').classList.add('active');
-  if(mode==='url') el('panel-url').classList.add('active');
-}
-
-el('fileInput').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f)return;
-  el('inputText').value = "Reading file...";
-
-  try {
-    let txt = ""; 
-    const ext = f.name.split('.').pop().toLowerCase();
-
-    if(ext==='txt') {
-        txt = await f.text();
-    } else if(ext==='pdf'){
-        txt = await readPdf(f);
-    } else if(ext.includes('doc')){
-        txt = await readDocx(f);
-    } else {
-        throw new Error("Format file tidak didukung.");
-    }
-
-    el('inputText').value = txt;
-  } catch(e){ 
-    alert("Error reading file: " + e.message); 
-    el('inputText').value = "";
+  if(isID) {
+    els.labels.ttr.textContent = "Pola Frasa (N-Gram)";
+    els.labels.punct.textContent = "Indikator AI (Hallmarks)";
+  } else {
+    els.labels.ttr.textContent = "Phrase Patterns";
+    els.labels.punct.textContent = "AI Indicators";
   }
-});
 
-/* === 5. SMART URL FETCHER (FIXED FOR BUTTON STATUS) === */
-async function fetchUrl(event){
-  const u = el('urlInput').value; 
-  if(!u) { alert("Masukkan URL dulu, bang!"); return; }
+  if (pct >= 75) { els.label.textContent = L.ai; els.label.style.color = 'var(--danger)'; els.label.style.borderColor='var(--danger)'; }
+  else if (pct >= 50){ els.label.textContent = L.mix; els.label.style.color = 'var(--warning)'; els.label.style.borderColor='var(--warning)';}
+  else { els.label.textContent = L.hu; els.label.style.color = 'var(--accent)'; els.label.style.borderColor='var(--accent)';}
+
+  els.meta.w.textContent = comp.wcount; els.meta.s.textContent = sentences(text).length;
+
+  const setBar = (key, val) => {
+    const v = Math.round(val*100);
+    els.bars[key].style.width = v + "%"; els.vals[key].textContent = v + "%";
+    els.bars[key].style.background = v > 60 ? 'var(--danger)' : (v > 30 ? 'var(--warning)' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)');
+  };
   
-  const fetchBtn = event.currentTarget;
-  fetchBtn.disabled = true;
-  fetchBtn.innerHTML = "Fetching...";
-  el('inputText').value = "Fetching URL (Sabar ya)...";
+  setBar('rep', comp.scRepetition); 
+  setBar('var', comp.scSentVar); 
+  setBar('ttr', comp.scTTR);     
+  setBar('punct', comp.scPunct); 
+  setBar('entropy', comp.scEntropy);
   
-  try {
-    // Pake proxy allorigins
-    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`);
-    const d = await r.json();
-    
-    if(!d.contents) throw new Error("Gagal ambil konten. Website mungkin memblokir bot.");
-
-    const doc = new DOMParser().parseFromString(d.contents, 'text/html');
-
-    // 1. Hapus Element Sampah (Iklan, Sidebar, Komentar)
-    ['script', 'style', 'nav', 'footer', 'aside', 'iframe', 'form', 'noscript'].forEach(t => {
-      doc.querySelectorAll(t).forEach(e => e.remove());
-    });
-    
-    // Hapus class sampah umum di blogspot/wordpress
-    const junkClasses = ['.comments', '#comments', '.sidebar', '#sidebar', '.widget', '.menu', '.ad', '.ads', '.cookie-consent'];
-    junkClasses.forEach(cls => {
-        doc.querySelectorAll(cls).forEach(e => e.remove());
-    });
-
-    // 2. SMART SELECTOR: Cari konten utama dulu
-    let contentEl = doc.querySelector('.post-body') || 
-                    doc.querySelector('.entry-content') || 
-                    doc.querySelector('article') || 
-                    doc.querySelector('#content') ||
-                    doc.querySelector('main') ||
-                    doc.body;
-
-    // 3. Ambil text dan bersihkan
-    let rawText = contentEl.innerText || "";
-    rawText = rawText.replace(/\n\s*\n/g, '\n\n').trim(); // Bersihkan whitespace berlebih
-
-    if(rawText.length < 50) {
-        throw new Error("Teks terlalu pendek. Mungkin salah ambil elemen.");
-    }
-
-    el('inputText').value = rawText;
-
-  } catch(e){
-    el('inputText').value = "";
-    alert("Gagal ambil URL: " + e.message + "\n\nCoba copy-paste manual aja teksnya.");
-  } finally {
-    fetchBtn.disabled = false;
-    fetchBtn.innerHTML = "Fetch";
-  }
+  els.explain.innerHTML = `<strong style="color:${color}">${pct > 50 ? L.exAI : L.exHu}</strong><br>Score ${pct}%`;
 }
-
-el('analyzeBtn').onclick = () => {
-  const txt = el('inputText').value.trim();
-  if(txt.split(/\s+/).length < 30){ alert("Teks terlalu pendek! Minimal 30 kata biar akurat."); return; }
-
-  // UI Reset
-  el('inputWrapper').classList.add('scanning');
-  el('analyzeBtn').innerHTML = "SCANNING...";
-  el('analyzeBtn').disabled = true;
-  el('resultCard').classList.remove('active');
-  
-  setTimeout(() => {
-    try {
-      const res = analyze(txt);
-      // Score now represents LIKELIHOOD OF HUMAN (1.0 = 100% Human, 0.0 = 0% Human)
-      const pct = Math.round(res.total * 100); 
-
-      animateValue(el('percent'), 0, pct, 1500);
-      
-      // Logic Warna (Human-centric now: Green is High Human Score)
-      let color = pct > 75 ? 'var(--accent)' : (pct > 40 ? 'var(--warning)' : 'var(--danger)');
-      el('gauge').style.background = `conic-gradient(${color} ${pct*3.6}deg, rgba(255,255,255,0.05) 0deg)`;
-      
-      let label = pct > 75 ? "MANUSIA / NATURAL" : (pct > 40 ? "MIXED / MERAGUKAN" : "DOMINAN AI");
-      el('statusBadge').innerText = label;
-      el('statusBadge').style.borderColor = color; 
-      el('statusBadge').style.color = color;
-      
-      el('explainText').innerHTML = pct > 75 
-        ? `Struktur kalimat terlihat <b style="color:${color}">natural</b>. Variasi panjang kalimat (burstiness) dan kekayaan kata menunjukkan ciri khas tulisan manusia.` 
-        : `Terdeteksi <b style="color:${color}">pola robotik yang kuat</b>. Teks ini minim variasi emosi, menggunakan frasa generik, dan struktur yang terlalu konsisten.`;
-
-      let html = "";
-      for(let [key, val] of Object.entries(res.cats)){
-        const vPct = Math.round(val*100);
-        // Bar color is now based on Human Score: 
-        // Good (Green/Blue): >50% Human (val > 0.5)
-        // Bad (Red/Danger): <40% Human (val < 0.4)
-        const barCol = vPct > 50 ? 'linear-gradient(90deg, #3b82f6, #8b5cf6)' : 'var(--danger)'; 
-        
-        // Special case: Hallmark is bad when low, so it should be red when low
-        let actualBarCol = barCol;
-        if (key.includes('Khas AI') && vPct < 60) actualBarCol = 'var(--danger)';
-        if (key.includes('Khas AI') && vPct >= 60) actualBarCol = 'var(--accent)'; // Good for human = high score in this new scale
-        
-        html += `<div class="stat-item"><div class="stat-label"><span>${key}</span><span>${vPct}%</span></div><div class="track"><div class="fill" style="width:${vPct}%; background:${actualBarCol}"></div></div></div>`;
-      }
-      el('statsContainer').innerHTML = html;
-      el('resultCard').classList.add('active');
-      if(window.innerWidth < 900) el('resultCard').scrollIntoView({behavior:"smooth"});
-
-    } catch(err) {
-      alert("Error: " + err.message);
-    } finally {
-      el('inputWrapper').classList.remove('scanning');
-      el('analyzeBtn').innerHTML = "SCAN AGAIN";
-      el('analyzeBtn').disabled = false;
-    }
-  }, 1200);
-};
 
 function animateValue(obj, start, end, duration) {
   let startTimestamp = null;
@@ -417,7 +699,32 @@ function animateValue(obj, start, end, duration) {
   };
   window.requestAnimationFrame(step);
 }
-</script>
 
+document.getElementById("analyzeBtn").onclick = ()=>{
+  const txt = els.input.value;
+  if(!txt.trim() || sentences(txt).length < 2) { alert("Minimal 2 kalimat / ~50 kata."); return; }
+
+  els.inputWrap.classList.add('scanning');
+  els.analyzeBtn.textContent = "Scanning...";
+  els.analyzeBtn.disabled = true;
+  els.resultCard.classList.remove('active');
+
+  setTimeout(()=>{
+    els.inputWrap.classList.remove('scanning');
+    const {score, components} = analyzeText(txt);
+    updateUI(score, components, txt);
+    els.analyzeBtn.textContent = "Analyze Text";
+    els.analyzeBtn.disabled = false;
+    els.resultCard.classList.add('active');
+    if(window.innerWidth < 900) els.resultCard.scrollIntoView({behavior: "smooth", block: "start"});
+  }, 1500);
+};
+
+document.getElementById("clearBtn").onclick = ()=>{
+  els.input.value = "";
+  els.resultCard.classList.remove('active');
+};
+</script>
 </body>
 </html>
+
