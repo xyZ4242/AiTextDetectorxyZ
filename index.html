@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="id">
 <head>
@@ -79,9 +78,9 @@
   <div class="grid">
     <div class="card" style="z-index: 2;">
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('text')">Paste Text</button>
-        <button class="tab-btn" onclick="switchTab('file')">Upload File</button>
-        <button class="tab-btn" onclick="switchTab('url')">URL</button>
+        <button class="tab-btn active" onclick="switchTab('text', event)">Paste Text</button>
+        <button class="tab-btn" onclick="switchTab('file', event)">Upload File</button>
+        <button class="tab-btn" onclick="switchTab('url', event)">URL</button>
       </div>
 
       <div id="panel-file" class="input-panel">
@@ -94,7 +93,7 @@
       <div id="panel-url" class="input-panel">
         <div style="display:flex; gap:10px">
           <input type="text" class="url-input" id="urlInput" placeholder="https://artikel.com">
-          <button onclick="fetchUrl()" style="width:auto;margin:0;padding:0 20px;background:rgba(255,255,255,0.1)">Fetch</button>
+          <button id="fetchUrlBtn" onclick="fetchUrl(event)" style="width:auto;margin:0;padding:0 20px;background:rgba(255,255,255,0.1)">Fetch</button>
         </div>
       </div>
 
@@ -141,7 +140,8 @@ function tokenize(t){
 }
 
 function sentences(t){ 
-  return sanitizeText(t).split(/[.?!]+\s+/).filter(s => s.trim().length > 2);
+  // Improved sentence splitting to handle common cases more robustly
+  return sanitizeText(t).split(/([.?!]|\n)\s+/).filter(s => s.trim().length > 2);
 }
 
 /* === 2. DATA & ENGINE === */
@@ -168,69 +168,98 @@ function analyze(text){
   const words = tokenize(cleanTxt);
   const lower = cleanTxt.toLowerCase();
 
-  // 1. Burstiness
+  // 1. Burstiness (Sentence Length Variation)
   const lens = sent.map(s => s.split(/\s+/).length);
   const dev = sd(lens);
-  const burst = (dev > 3.5 && dev < 9.0) ? 0.8 : 0.25;
+  // Adjusted: High variation (low SD) means human-like. Low SD means robotic/AI.
+  // The original logic seems backward (0.8 for bursty range), let's adjust the scoring philosophy:
+  const burst = clamp(1 - (Math.abs(dev - 6.0) / 15)); // Center human burstiness around 6.0, penalize extremes
 
-  // 2. Perplexity Proxy
+  // 2. Perplexity Proxy (Lexical Diversity/TTR)
   const unique = new Set(words).size;
-  const perp = clamp(1 - Math.abs((unique / (words.length||1)) - 0.55) / 0.25);
+  const ttr = (unique / (words.length || 1));
+  const perp = clamp(1 - Math.abs(ttr - 0.55) / 0.25); // Center human TTR around 0.55
 
   // 3. Repetition
   const wordCounts = {}; words.forEach(w => wordCounts[w] = (wordCounts[w]||0)+1);
   const repCount = Object.values(wordCounts).filter(c => c > 1).length;
-  const rep = clamp((repCount / (words.length||1)) * 3.5);
+  const rep = clamp(1 - (repCount / (words.length||1) * 3.5)); // 1 for low repetition (good)
 
-  // 4. Hallmarks
+  // 4. Hallmarks (AI-Phrase Detection)
   const keys = [...DB[lang].story, ...DB[lang].essay];
   let hits = 0; 
   keys.forEach(k => { if(lower.includes(k)) hits += (k.includes(" ") ? 2 : 1); });
-  const hall = clamp((hits / (words.length||1)) * 120);
+  const hall = clamp(1 - (hits / (words.length||1) * 120)); // 1 for low hallmark words (good)
 
-  // 5. N-Gram
+  // 5. N-Gram Uniformity
   const bi = []; for(let i=0; i<words.length-1; i++) bi.push(words[i]+" "+words[i+1]);
-  const ngram = clamp(1 - ((new Set(bi).size / (bi.length||1)) - 0.6) / 0.35);
+  const nGramDiversity = (new Set(bi).size / (bi.length||1));
+  const ngram = clamp(1 - Math.abs(nGramDiversity - 0.75) / 0.25); // Center human N-Gram diversity around 0.75
 
-  // 6. Connectors
+  // 6. Connectors (Over-reliance on flowery connectors)
   let connHits = 0; DB[lang].connectors.forEach(c => { if(lower.includes(c)) connHits++; });
-  const conn = clamp((connHits / (words.length||1)) * 150);
+  const conn = clamp(1 - (connHits / (words.length||1) * 150)); // 1 for low connector usage (good)
 
-  // 7. Para Uniformity
+  // 7. Para Uniformity (Consistency of paragraph length)
   const paras = cleanTxt.split(/\n\s*\n/).filter(p=>p.trim().length>0);
-  const para = paras.length < 2 ? 0.5 : clamp(1 - (sd(paras.map(p=>p.split(" ").length)) / 20));
+  const paraDev = sd(paras.map(p=>p.split(" ").length));
+  const para = paras.length < 2 ? 0.5 : clamp(1 - (paraDev / 20)); // 1 for high variation (good)
 
-  // 8. Complexity
+  // 8. Complexity (Commas per sentence)
   const commas = (cleanTxt.match(/,/g)||[]).length;
-  const comp = clamp(commas / (sent.length||1) / 2.5);
+  const avgCommas = commas / (sent.length||1);
+  const comp = clamp(1 - Math.abs(avgCommas - 1.5) / 3.0); // Center human complexity around 1.5 commas/sentence
 
-  // 9. Readability
+  // 9. Readability (Average Word Length)
   const avgLen = words.reduce((a,b)=>a+b.length,0) / (words.length||1);
-  const read = (avgLen > 5.0 && avgLen < 6.5) ? 0.7 : 0.3;
+  const read = clamp(1 - Math.abs(avgLen - 5.5) / 1.5); // Center human readability/word length around 5.5
 
-  // 10. Emotion
-  const emo = clamp(1 - ((cleanTxt.match(/!/g)||[]).length / cleanTxt.length * 100));
+  // 10. Emotion/Punctuation Mark Use (Exclamation Marks as a proxy)
+  const emo = clamp(1 - (((cleanTxt.match(/!/g)||[]).length / cleanTxt.length) * 100)); // 1 for low exclamation marks (AI tends to avoid them)
 
-  let w = { burst:0.1, perp:0.05, rep:0.05, hall:0.25, ngram:0.20, conn:0.1, para:0.1, comp:0.05, read:0.05, emo:0.05 };
-  if(hall > 0.2) { w.hall = 0.45; w.ngram = 0.25; }
-
-  let score = burst*w.burst + perp*w.perp + rep*w.rep + hall*w.hall + ngram*w.ngram + conn*w.conn + para*w.para + comp*w.comp + read*w.read + emo*w.emo;
+  // Scoring Weights (Adjusted for "Human Likelihood Score")
+  // All components now score 1.0 for "Human" and 0.0 for "AI"
+  let w = { burst:0.1, perp:0.15, rep:0.1, hall:0.25, ngram:0.15, conn:0.1, para:0.05, comp:0.05, read:0.05, emo:0.05 };
   
-  if(hall > 0.5) score = Math.max(score, 0.88);
-  if(score > 0.55) score += 0.15; if(score < 0.35) score -= 0.10;
+  // High Hallmarks is a strong indicator of AI
+  if (hall < 0.5) { w.hall = 0.45; w.ngram = 0.25; }
+
+  let humanScore = burst*w.burst + perp*w.perp + rep*w.rep + hall*w.hall + ngram*w.ngram + conn*w.conn + para*w.para + comp*w.comp + read*w.read + emo*w.emo;
+  
+  // Final score smoothing (less aggressive than before, but still boosts strong indicators)
+  const finalScore = clamp(humanScore);
 
   return { 
-    total: clamp(score), 
-    cats: { "Variasi Kalimat":burst, "Kekayaan Kata":perp, "Repetisi":rep, "Kata Khas AI":hall, "Pola Frasa":ngram, "Kata Sambung":conn, "Struktur Paragraf":para, "Kompleksitas":comp, "Readability":read, "Emosi Datar":emo } 
+    total: finalScore, 
+    cats: { "Variasi Kalimat (Burstiness)":burst, "Kekayaan Kata (Perplexity)":perp, "Repetisi Kata":rep, "Kata Khas AI (Hallmark)":hall, "Pola Frasa (N-Gram)":ngram, "Kata Sambung Formal":conn, "Struktur Paragraf":para, "Kompleksitas Kalimat":comp, "Keterbacaan":read, "Emosi Datar":emo } 
   };
 }
 
-/* === 3. UI INTERACTION === */
+/* === 3. FILE READING FUNCTIONS === */
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-function switchTab(mode){
+async function readPdf(file) {
+    const d = await file.arrayBuffer();
+    const p = await pdfjsLib.getDocument({data:d}).promise;
+    let txt = "";
+    for(let i=1; i<=p.numPages; i++) {
+        const page = await p.getPage(i);
+        const textContent = await page.getTextContent();
+        txt += textContent.items.map(s => s.str).join(' ') + "\n";
+    }
+    return txt;
+}
+
+async function readDocx(file) {
+    const r = await mammoth.extractRawText({arrayBuffer: await file.arrayBuffer()});
+    return r.value;
+}
+
+/* === 4. UI INTERACTION & EVENT HANDLERS === */
+
+function switchTab(mode, event){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
   document.querySelectorAll('.input-panel').forEach(p=>p.classList.remove('active'));
   if(mode==='file') el('panel-file').classList.add('active');
   if(mode==='url') el('panel-url').classList.add('active');
@@ -239,23 +268,36 @@ function switchTab(mode){
 el('fileInput').addEventListener('change', async (e)=>{
   const f = e.target.files[0]; if(!f)return;
   el('inputText').value = "Reading file...";
+
   try {
-    let txt = ""; const ext = f.name.split('.').pop().toLowerCase();
-    if(ext==='txt') txt = await f.text();
-    else if(ext==='pdf'){
-      const d = await f.arrayBuffer(); const p = await pdfjsLib.getDocument({data:d}).promise;
-      for(let i=1;i<=p.numPages;i++) txt += (await (await p.getPage(i)).getTextContent()).items.map(s=>s.str).join(' ')+"\n";
+    let txt = ""; 
+    const ext = f.name.split('.').pop().toLowerCase();
+
+    if(ext==='txt') {
+        txt = await f.text();
+    } else if(ext==='pdf'){
+        txt = await readPdf(f);
+    } else if(ext.includes('doc')){
+        txt = await readDocx(f);
+    } else {
+        throw new Error("Format file tidak didukung.");
     }
-    else if(ext.includes('doc')){ const r = await mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()}); txt = r.value; }
+
     el('inputText').value = txt;
-  } catch(e){ alert("Error reading file: " + e.message); }
+  } catch(e){ 
+    alert("Error reading file: " + e.message); 
+    el('inputText').value = "";
+  }
 });
 
-/* === 4. SMART URL FETCHER (FIXED FOR BLOGSPOT) === */
-async function fetchUrl(){
+/* === 5. SMART URL FETCHER (FIXED FOR BUTTON STATUS) === */
+async function fetchUrl(event){
   const u = el('urlInput').value; 
   if(!u) { alert("Masukkan URL dulu, bang!"); return; }
   
+  const fetchBtn = event.currentTarget;
+  fetchBtn.disabled = true;
+  fetchBtn.innerHTML = "Fetching...";
   el('inputText').value = "Fetching URL (Sabar ya)...";
   
   try {
@@ -279,7 +321,6 @@ async function fetchUrl(){
     });
 
     // 2. SMART SELECTOR: Cari konten utama dulu
-    // Blogspot biasanya pake '.post-body', Wordpress '.entry-content'
     let contentEl = doc.querySelector('.post-body') || 
                     doc.querySelector('.entry-content') || 
                     doc.querySelector('article') || 
@@ -289,8 +330,7 @@ async function fetchUrl(){
 
     // 3. Ambil text dan bersihkan
     let rawText = contentEl.innerText || "";
-    // Bersihkan whitespace berlebih
-    rawText = rawText.replace(/\n\s*\n/g, '\n\n').trim();
+    rawText = rawText.replace(/\n\s*\n/g, '\n\n').trim(); // Bersihkan whitespace berlebih
 
     if(rawText.length < 50) {
         throw new Error("Teks terlalu pendek. Mungkin salah ambil elemen.");
@@ -301,6 +341,9 @@ async function fetchUrl(){
   } catch(e){
     el('inputText').value = "";
     alert("Gagal ambil URL: " + e.message + "\n\nCoba copy-paste manual aja teksnya.");
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = "Fetch";
   }
 }
 
@@ -317,28 +360,38 @@ el('analyzeBtn').onclick = () => {
   setTimeout(() => {
     try {
       const res = analyze(txt);
-      const pct = Math.round(res.total * 100);
+      // Score now represents LIKELIHOOD OF HUMAN (1.0 = 100% Human, 0.0 = 0% Human)
+      const pct = Math.round(res.total * 100); 
 
       animateValue(el('percent'), 0, pct, 1500);
       
-      // Logic Warna
-      let color = pct > 70 ? 'var(--danger)' : (pct > 40 ? 'var(--warning)' : 'var(--accent)');
+      // Logic Warna (Human-centric now: Green is High Human Score)
+      let color = pct > 75 ? 'var(--accent)' : (pct > 40 ? 'var(--warning)' : 'var(--danger)');
       el('gauge').style.background = `conic-gradient(${color} ${pct*3.6}deg, rgba(255,255,255,0.05) 0deg)`;
       
-      let label = pct > 75 ? "DOMINAN AI" : (pct > 45 ? "MIXED / MERAGUKAN" : "MANUSIA / NATURAL");
+      let label = pct > 75 ? "MANUSIA / NATURAL" : (pct > 40 ? "MIXED / MERAGUKAN" : "DOMINAN AI");
       el('statusBadge').innerText = label;
       el('statusBadge').style.borderColor = color; 
       el('statusBadge').style.color = color;
       
-      el('explainText').innerHTML = pct > 70 
-        ? `Terdeteksi <b style="color:${color}">pola robotik yang kuat</b> (${pct}%). Teks ini minim variasi emosi, menggunakan frasa generik, dan struktur yang terlalu konsisten.` 
-        : `Struktur kalimat terlihat <b style="color:${color}">natural</b>. Variasi panjang kalimat (burstiness) dan kekayaan kata menunjukkan ciri khas tulisan manusia.`;
+      el('explainText').innerHTML = pct > 75 
+        ? `Struktur kalimat terlihat <b style="color:${color}">natural</b>. Variasi panjang kalimat (burstiness) dan kekayaan kata menunjukkan ciri khas tulisan manusia.` 
+        : `Terdeteksi <b style="color:${color}">pola robotik yang kuat</b>. Teks ini minim variasi emosi, menggunakan frasa generik, dan struktur yang terlalu konsisten.`;
 
       let html = "";
       for(let [key, val] of Object.entries(res.cats)){
         const vPct = Math.round(val*100);
-        const barCol = vPct > 50 ? 'var(--danger)' : (key==='Variasi Kalimat' ? 'var(--accent)' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)');
-        html += `<div class="stat-item"><div class="stat-label"><span>${key}</span><span>${vPct}%</span></div><div class="track"><div class="fill" style="width:${vPct}%; background:${barCol}"></div></div></div>`;
+        // Bar color is now based on Human Score: 
+        // Good (Green/Blue): >50% Human (val > 0.5)
+        // Bad (Red/Danger): <40% Human (val < 0.4)
+        const barCol = vPct > 50 ? 'linear-gradient(90deg, #3b82f6, #8b5cf6)' : 'var(--danger)'; 
+        
+        // Special case: Hallmark is bad when low, so it should be red when low
+        let actualBarCol = barCol;
+        if (key.includes('Khas AI') && vPct < 60) actualBarCol = 'var(--danger)';
+        if (key.includes('Khas AI') && vPct >= 60) actualBarCol = 'var(--accent)'; // Good for human = high score in this new scale
+        
+        html += `<div class="stat-item"><div class="stat-label"><span>${key}</span><span>${vPct}%</span></div><div class="track"><div class="fill" style="width:${vPct}%; background:${actualBarCol}"></div></div></div>`;
       }
       el('statsContainer').innerHTML = html;
       el('resultCard').classList.add('active');
